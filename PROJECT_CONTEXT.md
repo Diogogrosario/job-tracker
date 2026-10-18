@@ -475,7 +475,7 @@ DELETE /api/email/messages           # Delete imported messages (mailbox remains
 
 ### Configuration and secrets
 
-Gmail settings are under `app.google.client-id`, `app.google.client-secret`, `app.google.redirect-uri`, `app.security.token-encryption-key`, `app.frontend-url`, `app.gmail.sync-query`, `app.gmail.initial-days`, and `app.gmail.max-messages-per-sync`. The defaults use callback `http://localhost:8080/api/mailbox/oauth/callback`, frontend `http://localhost:4200`, 30 initial days, and up to 200 messages per sync. The configurable Gmail query is combined with the date filter.
+Gmail settings are under `app.google.client-id`, `app.google.client-secret`, `app.google.redirect-uri`, `app.security.token-encryption-key`, `app.frontend-url`, `app.gmail.sync-query`, `app.gmail.initial-days`, and `app.gmail.max-messages-per-sync`. The defaults use callback `http://localhost:8080/api/mailbox/oauth/callback`, frontend `http://localhost:4200`, 30 initial days, and up to 200 messages per sync. The configurable Gmail query is combined with the date filter, excludes sent, spam, and trash, and matches likely recruitment emails.
 
 Configuration loads the existing `../.env` import and optionally the secrets file at `${user.home}/.jobtracker/secrets.properties` (on Windows, `%USERPROFILE%\.jobtracker\secrets.properties`). Always place `secrets.properties` at that location; the file path is fixed and cannot be overridden. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `TOKEN_ENCRYPTION_KEY` in the environment or secrets properties file. `TOKEN_ENCRYPTION_KEY` must be base64 for exactly 32 random bytes. `app.gmail.min-sync-interval-minutes` defaults to 5; non-forced syncs within that interval return the previous successful result without calling Gmail.
 

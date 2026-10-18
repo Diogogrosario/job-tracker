@@ -39,7 +39,7 @@ app:
     token-encryption-key: ${TOKEN_ENCRYPTION_KEY:}
   frontend-url: ${FRONTEND_URL:http://localhost:4200}
   gmail:
-    sync-query: 'in:anywhere -in:spam -in:trash (application OR applied OR "your application" OR interview OR candidate OR recruiter OR recruiting OR assessment OR offer OR "next steps" OR unfortunately OR position OR vacancy OR "job alert" OR hiring)'
+    sync-query: 'in:anywhere -in:sent -in:spam -in:trash (application OR applied OR "your application" OR interview OR candidate OR recruiter OR recruiting OR assessment OR offer OR "next steps" OR unfortunately OR position OR vacancy OR "job alert" OR hiring)'
     initial-days: 30
     max-messages-per-sync: 200
     min-sync-interval-minutes: 5
