@@ -30,7 +30,14 @@ management:
 app:
   ollama:
     base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
-    model: ${OLLAMA_MODEL:gemma3:1b}
+    model: ${OLLAMA_MODEL:gemma3:4b}
+    keep-alive: ${OLLAMA_KEEP_ALIVE:30s}
+    timeout-seconds: ${OLLAMA_TIMEOUT_SECONDS:180}
+    max-body-chars: ${OLLAMA_MAX_BODY_CHARS:3000}
+  processing:
+    max-per-run: ${PROCESSING_MAX_PER_RUN:50}
+    auto-apply: ${PROCESSING_AUTO_APPLY:false}
+    auto-apply-min-confidence: ${PROCESSING_AUTO_APPLY_MIN_CONFIDENCE:0.85}
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
     client-secret: ${GOOGLE_CLIENT_SECRET:}
@@ -39,7 +46,7 @@ app:
     token-encryption-key: ${TOKEN_ENCRYPTION_KEY:}
   frontend-url: ${FRONTEND_URL:http://localhost:4200}
   gmail:
-    sync-query: 'in:anywhere -in:sent -in:spam -in:trash (application OR applied OR "your application" OR interview OR candidate OR recruiter OR recruiting OR assessment OR offer OR "next steps" OR unfortunately OR position OR vacancy OR "job alert" OR hiring)'
+    sync-query: 'in:inbox (application OR applied OR "your application" OR interview OR candidate OR recruiter OR recruiting OR assessment OR offer OR "next steps" OR unfortunately OR position OR vacancy OR "job alert" OR hiring)'
     initial-days: 30
     max-messages-per-sync: 200
     min-sync-interval-minutes: 5
