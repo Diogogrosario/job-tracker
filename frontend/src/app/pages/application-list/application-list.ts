@@ -269,6 +269,7 @@ export class ApplicationList implements OnInit {
           const wasRunning = this.processStatus()?.running ?? false;
           this.processStatus.set(status);
           if (status.running) {
+            this.refreshAll();
             this.scheduleProcessStatusCheck(10_000);
           } else {
             this.clearProcessPoll();
