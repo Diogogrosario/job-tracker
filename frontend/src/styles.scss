@@ -1,1 +1,297 @@
-/* You can add global styles to this file, and also import other style files */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f5f7fa;
+  color: #202b3c;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: #2358a5;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 62px;
+  padding: 0 6vw;
+  background: #fff;
+  border-bottom: 1px solid #e1e6ed;
+}
+
+.brand {
+  color: #202b3c;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.topbar nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.nav-action,
+.button-primary {
+  border: 1px solid #2358a5;
+  border-radius: 5px;
+  background: #2358a5;
+  color: #fff;
+  padding: 0.55rem 0.85rem;
+}
+
+.nav-action:hover,
+.button-primary:hover {
+  background: #194784;
+  text-decoration: none;
+}
+
+.page-container {
+  width: min(1100px, 92vw);
+  margin: 2rem auto;
+}
+
+.page-heading,
+.toolbar,
+.form-actions,
+.detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.page-heading {
+  margin-bottom: 1.5rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.7rem;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+.panel,
+.table-wrap {
+  border: 1px solid #e1e6ed;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.panel {
+  padding: 1.5rem;
+}
+
+.toolbar {
+  justify-content: flex-start;
+  margin-bottom: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.toolbar .field {
+  min-width: 220px;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #cbd3de;
+  border-radius: 5px;
+  background: #fff;
+  padding: 0.6rem 0.7rem;
+  color: #202b3c;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+th,
+td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #edf0f4;
+  white-space: nowrap;
+}
+
+th {
+  color: #596579;
+  font-size: 0.85rem;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.button-link,
+.button-danger {
+  border: 0;
+  background: none;
+  padding: 0;
+}
+
+.button-danger,
+.error {
+  color: #b42318;
+}
+
+.status-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.status-applied { background: #e7efff; color: #244f9b; }
+.status-interview { background: #fff1d6; color: #8a5600; }
+.status-offer { background: #e1f5e9; color: #18713b; }
+.status-rejected { background: #ffebea; color: #a52a24; }
+.status-closed { background: #e8eaed; color: #59616d; }
+
+.empty-state {
+  padding: 3rem 1rem;
+  color: #596579;
+  text-align: center;
+}
+
+.application-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 720px;
+}
+
+.application-form small {
+  color: #b42318;
+}
+
+.form-actions {
+  justify-content: flex-start;
+  margin-top: 0.5rem;
+}
+
+.button-secondary {
+  border: 1px solid #cbd3de;
+  border-radius: 5px;
+  background: #fff;
+  color: #202b3c;
+  padding: 0.55rem 0.85rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.detail-item {
+  overflow-wrap: anywhere;
+}
+
+.detail-item strong,
+.detail-item span {
+  display: block;
+}
+
+.detail-item strong {
+  margin-bottom: 0.35rem;
+  color: #596579;
+  font-size: 0.85rem;
+}
+
+.history {
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-panel {
+  margin-top: 1.5rem;
+}
+
+.history li {
+  border-left: 2px solid #cbd8ed;
+  margin-left: 0.4rem;
+  padding: 0 0 1.25rem 1rem;
+}
+
+.history li:last-child {
+  padding-bottom: 0;
+}
+
+.history p {
+  margin: 0.35rem 0;
+}
+
+.muted,
+.error {
+  color: #596579;
+}
+
+.error {
+  margin: 0 0 1rem;
+  color: #b42318;
+}
+
+@media (max-width: 650px) {
+  .topbar {
+    padding: 0 4vw;
+  }
+
+  .page-heading,
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

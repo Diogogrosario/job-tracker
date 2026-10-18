@@ -1,0 +1,80 @@
+<section>
+  <div class="page-heading">
+    <h1>{{ isEditing() ? 'Edit application' : 'Add application' }}</h1>
+    <a routerLink="/">Back to applications</a>
+  </div>
+
+  @if (loading()) {
+    <p class="muted" aria-live="polite">Loading application...</p>
+  } @else if (loadFailed()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  } @else {
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+
+    <form class="panel application-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <label class="field">
+        <span>Company <span aria-hidden="true">*</span></span>
+        <input formControlName="company" maxlength="200" required />
+        @if (form.controls.company.touched && form.controls.company.invalid) {
+          <small>
+            @if (form.controls.company.hasError('required') || form.controls.company.hasError('pattern')) {
+              Company is required.
+            } @else if (form.controls.company.hasError('maxlength')) {
+              Company must be 200 characters or fewer.
+            }
+          </small>
+        }
+      </label>
+
+      <label class="field">
+        <span>Job title <span aria-hidden="true">*</span></span>
+        <input formControlName="jobTitle" maxlength="200" required />
+        @if (form.controls.jobTitle.touched && form.controls.jobTitle.invalid) {
+          <small>
+            @if (form.controls.jobTitle.hasError('required') || form.controls.jobTitle.hasError('pattern')) {
+              Job title is required.
+            } @else if (form.controls.jobTitle.hasError('maxlength')) {
+              Job title must be 200 characters or fewer.
+            }
+          </small>
+        }
+      </label>
+
+      <label class="field">
+        <span>Job URL</span>
+        <input formControlName="jobUrl" maxlength="1000" />
+        @if (form.controls.jobUrl.touched && form.controls.jobUrl.hasError('maxlength')) {
+          <small>Job URL must be 1000 characters or fewer.</small>
+        }
+      </label>
+
+      <label class="field">
+        <span>Date applied</span>
+        <input type="date" formControlName="dateApplied" />
+      </label>
+
+      <label class="field">
+        <span>Status</span>
+        <select formControlName="status">
+          @for (status of statuses; track status) {
+            <option [value]="status">{{ statusLabel(status) }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Notes</span>
+        <textarea formControlName="notes" rows="5"></textarea>
+      </label>
+
+      <div class="form-actions">
+        <button class="button-primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Saving...' : (isEditing() ? 'Save changes' : 'Create application') }}
+        </button>
+        <a class="button-secondary" routerLink="/">Cancel</a>
+      </div>
+    </form>
+  }
+</section>

@@ -1,0 +1,86 @@
+<section>
+  <div class="page-heading">
+    <div>
+      <h1>Applications</h1>
+      <p class="muted">Keep track of your job search.</p>
+    </div>
+    <a class="button-primary" routerLink="/applications/new">Add application</a>
+  </div>
+
+  <div class="toolbar">
+    <label class="field">
+      <span>Search company or job title</span>
+      <input
+        #searchField
+        type="search"
+        [value]="searchText()"
+        (input)="onSearch(searchField.value)"
+        placeholder="Search applications"
+      />
+    </label>
+    <label class="field">
+      <span>Filter by status</span>
+      <select #statusFilter [value]="selectedStatus()" (change)="onStatusChange(statusFilter.value)">
+        <option value="">All statuses</option>
+        @for (status of statuses; track status) {
+          <option [value]="status">{{ statusLabel(status) }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="muted" aria-live="polite">Loading applications...</p>
+  } @else if (applications().length === 0) {
+    <div class="panel empty-state">
+      <h2>No applications found</h2>
+      <p>Add an application or adjust your search and filters.</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Company</th>
+            <th scope="col">Job title</th>
+            <th scope="col">Status</th>
+            <th scope="col">Date applied</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (application of applications(); track application.id) {
+            <tr>
+              <td>{{ application.company }}</td>
+              <td>{{ application.jobTitle }}</td>
+              <td>
+                <span [class]="'status-badge status-' + application.status.toLowerCase()">
+                  {{ statusLabel(application.status) }}
+                </span>
+              </td>
+              <td>{{ application.dateApplied ? (application.dateApplied | date: 'mediumDate') : '-' }}</td>
+              <td>
+                <div class="actions">
+                  <a [routerLink]="['/applications', application.id]">View</a>
+                  <a [routerLink]="['/applications', application.id, 'edit']">Edit</a>
+                  <button
+                    class="button-danger"
+                    type="button"
+                    [disabled]="deletingId() === application.id"
+                    (click)="remove(application)"
+                  >
+                    {{ deletingId() === application.id ? 'Deleting...' : 'Delete' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

@@ -139,7 +139,7 @@ CREATE TABLE job_application (
     job_title    VARCHAR(200)  NOT NULL,
     job_url      VARCHAR(1000),
     date_applied DATE,
-    status       VARCHAR(30)   NOT NULL DEFAULT 'SAVED',
+    status       VARCHAR(30)   NOT NULL DEFAULT 'APPLIED',
     notes        TEXT,
     created_at   TIMESTAMPTZ   NOT NULL DEFAULT now(),
     updated_at   TIMESTAMPTZ   NOT NULL DEFAULT now()
@@ -192,7 +192,7 @@ Layering inside a feature package: entity → repository → service → control
 
 ### Application statuses (enum `ApplicationStatus`)
 
-`SAVED, APPLIED, APPLICATION_RECEIVED, ASSESSMENT, INTERVIEW, OFFER, REJECTED, WITHDRAWN, CLOSED`
+`APPLIED, INTERVIEW, OFFER, REJECTED, CLOSED`
 
 ### Application fields
 

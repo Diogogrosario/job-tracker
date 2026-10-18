@@ -1,0 +1,84 @@
+<section>
+  @if (loading()) {
+    <p class="muted" aria-live="polite">Loading application...</p>
+  } @else if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+    <a routerLink="/">Back to applications</a>
+  } @else if (application(); as item) {
+    <div class="page-heading">
+      <div>
+        <h1>{{ item.jobTitle }}</h1>
+        <p class="muted">{{ item.company }}</p>
+      </div>
+      <div class="detail-actions">
+        <a class="button-secondary" routerLink="/">Back</a>
+        <a class="button-primary" [routerLink]="['/applications', item.id, 'edit']">Edit</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <strong>Company</strong>
+          <span>{{ item.company }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Job title</strong>
+          <span>{{ item.jobTitle }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Status</strong>
+          <span [class]="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Date applied</strong>
+          <span>{{ item.dateApplied ? (item.dateApplied | date: 'mediumDate') : '-' }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Job URL</strong>
+          <span>{{ item.jobUrl || '-' }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Notes</strong>
+          <span>{{ item.notes || '-' }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Created</strong>
+          <span>{{ item.createdAt | date: 'medium' }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Last updated</strong>
+          <span>{{ item.updatedAt | date: 'medium' }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Application ID</strong>
+          <span>{{ item.id }}</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="panel history-panel">
+      <h2>Status history</h2>
+      @if (history().length === 0) {
+        <p class="muted">No status changes recorded.</p>
+      } @else {
+        <ol class="history">
+          @for (entry of history(); track entry.id) {
+            <li>
+              <strong>
+                {{ entry.oldStatus ? statusLabel(entry.oldStatus) : 'New' }}
+                &rarr;
+                {{ statusLabel(entry.newStatus) }}
+              </strong>
+              <p>Source: {{ entry.source }}</p>
+              @if (entry.sourceMessageId) {
+                <p>Source message: {{ entry.sourceMessageId }}</p>
+              }
+              <time [attr.datetime]="entry.changedAt">{{ entry.changedAt | date: 'medium' }}</time>
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  }
+</section>
