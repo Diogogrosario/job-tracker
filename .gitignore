@@ -3,3 +3,5 @@
 .idea/
 .vscode/
 STARTUP.md
+secrets/*
+!secrets/*.example
