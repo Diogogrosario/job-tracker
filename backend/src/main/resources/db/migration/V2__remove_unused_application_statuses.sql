@@ -1,0 +1,23 @@
+UPDATE application_status_history
+SET old_status = CASE old_status
+        WHEN 'SAVED' THEN 'APPLIED'
+        WHEN 'APPLICATION_RECEIVED' THEN 'APPLIED'
+        WHEN 'ASSESSMENT' THEN 'INTERVIEW'
+        WHEN 'WITHDRAWN' THEN 'CLOSED'
+        ELSE old_status
+    END,
+    new_status = CASE new_status
+        WHEN 'SAVED' THEN 'APPLIED'
+        WHEN 'APPLICATION_RECEIVED' THEN 'APPLIED'
+        WHEN 'ASSESSMENT' THEN 'INTERVIEW'
+        WHEN 'WITHDRAWN' THEN 'CLOSED'
+        ELSE new_status
+    END
+WHERE old_status IN ('SAVED', 'APPLICATION_RECEIVED', 'ASSESSMENT', 'WITHDRAWN')
+   OR new_status IN ('SAVED', 'APPLICATION_RECEIVED', 'ASSESSMENT', 'WITHDRAWN');
+
+DELETE FROM job_application
+WHERE status IN ('SAVED', 'APPLICATION_RECEIVED', 'ASSESSMENT', 'WITHDRAWN');
+
+ALTER TABLE job_application
+    ALTER COLUMN status SET DEFAULT 'APPLIED';

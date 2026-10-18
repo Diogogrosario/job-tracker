@@ -30,7 +30,7 @@ public class JobApplicationService {
         application.setJobTitle(request.jobTitle());
         application.setJobUrl(request.jobUrl());
         application.setDateApplied(request.dateApplied());
-        application.setStatus(request.status() == null ? ApplicationStatus.SAVED : request.status());
+        application.setStatus(request.status() == null ? ApplicationStatus.APPLIED : request.status());
         application.setNotes(request.notes());
         application = applicationRepository.save(application);
         recordStatusChange(application, null, application.getStatus());
