@@ -89,7 +89,8 @@ public class EmailProcessingService {
                     increment(1, 0, 0, 0);
                     continue;
                 }
-                EmailCategory hint = EmailProcessingRules.ruleHint(message.getSubject(), message.getBodyText());
+                java.util.Set<EmailCategory> hints =
+                        EmailProcessingRules.ruleHints(message.getSubject(), message.getBodyText());
                 ClassificationResult classification;
                 try {
                     classification = classifier.classify(message);
@@ -100,9 +101,11 @@ public class EmailProcessingService {
                 }
                 try {
                     EmailProcessingWorker.ProcessingOutcome outcome = worker.process(
-                            message.getId(), classification, hint,
-                            properties.getProcessing().isAutoApply(),
-                            properties.getProcessing().getAutoApplyMinConfidence());
+                            message.getId(), classification,
+                            hints,
+                            properties.getProcessing().isAutoApplyMatched(),
+                            properties.getProcessing().isAutoApplyAiOnly(),
+                            properties.getProcessing().isRequireAgreement());
                     if (outcome.error()) {
                         lastError = "One or more messages have processing errors; see their processing details";
                     }
@@ -112,7 +115,7 @@ public class EmailProcessingService {
                     worker.markFailed(message.getId(),
                             "Processing failed (" + exception.getClass().getSimpleName() + ")");
                     lastError = "A message failed processing (" + exception.getClass().getSimpleName() + ")";
-                    increment(1, 0, 0, 1);
+                    increment(0, 0, 0, 1);
                 }
             }
         } catch (RuntimeException exception) {

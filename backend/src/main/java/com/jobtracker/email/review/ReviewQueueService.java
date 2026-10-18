@@ -3,6 +3,8 @@ package com.jobtracker.email.review;
 import com.jobtracker.application.domain.ApplicationStatus;
 import com.jobtracker.application.domain.JobApplication;
 import com.jobtracker.application.service.JobApplicationService;
+import com.jobtracker.application.persistence.JobApplicationRepository;
+import com.jobtracker.common.error.BadRequestException;
 import com.jobtracker.common.error.ConflictException;
 import com.jobtracker.common.error.NotFoundException;
 import com.jobtracker.email.message.EmailMessage;
@@ -18,19 +20,22 @@ public class ReviewQueueService {
     private final ReviewItemRepository reviewRepository;
     private final EmailMessageRepository messageRepository;
     private final JobApplicationService applicationService;
+    private final JobApplicationRepository applicationRepository;
 
     public ReviewQueueService(
             ReviewItemRepository reviewRepository,
             EmailMessageRepository messageRepository,
-            JobApplicationService applicationService) {
+            JobApplicationService applicationService,
+            JobApplicationRepository applicationRepository) {
         this.reviewRepository = reviewRepository;
         this.messageRepository = messageRepository;
         this.applicationService = applicationService;
+        this.applicationRepository = applicationRepository;
     }
 
     @Transactional(readOnly = true)
     public List<ReviewQueueResponse> list(ReviewStatus status) {
-        return reviewRepository.findAllByStatusOrderByCreatedAtAsc(status).stream()
+        return reviewRepository.findAllByStatusOrderByCreatedAtDesc(status).stream()
                 .map(ReviewQueueService::toResponse)
                 .toList();
     }
@@ -40,15 +45,26 @@ public class ReviewQueueService {
         ReviewItem item = findPendingItem(id);
         EmailMessage email = item.getEmailMessage();
         ApplicationStatus target = request != null && request.status() != null
-                ? request.status()
-                : item.getProposedStatus();
+                ? request.status() : item.getProposedStatus();
+        if (target == null) {
+            throw new BadRequestException("Choose a status before applying this attention item");
+        }
         JobApplication application;
 
-        if (item.getAction() == ReviewAction.CREATE_APPLICATION) {
+        if (request != null && request.applicationId() != null) {
+            if (request.status() == null) {
+                throw new BadRequestException("A status is required when linking to an existing application");
+            }
+            JobApplication linked = applicationRepository.findById(request.applicationId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Job application " + request.applicationId() + " not found"));
+            application = applicationService.applyEmailUpdate(
+                    linked.getId(), request.company(), request.jobTitle(), target, email.getProviderMessageId());
+        } else if (item.getAction() == ReviewAction.CREATE_APPLICATION) {
             String company = override(request == null ? null : request.company(), item.getProposedCompany());
             String jobTitle = override(request == null ? null : request.jobTitle(), item.getProposedJobTitle());
             if (company == null || company.isBlank() || jobTitle == null || jobTitle.isBlank()) {
-                throw new ConflictException("Company and job title are required to create an application");
+                throw new BadRequestException("Company and job title are required to create an application");
             }
             application = applicationService.createFromEmail(
                     company, jobTitle, target, email.getReceivedAt().atZoneSameInstant(ZoneId.systemDefault())
@@ -56,7 +72,7 @@ public class ReviewQueueService {
                     email.getSubject(), email.getProviderMessageId());
         } else {
             if (item.getApplication() == null) {
-                throw new ConflictException("This proposal has no uniquely matched application");
+                throw new BadRequestException("Choose an existing application or provide company and job title");
             }
             application = applicationService.applyEmailUpdate(
                     item.getApplication().getId(),

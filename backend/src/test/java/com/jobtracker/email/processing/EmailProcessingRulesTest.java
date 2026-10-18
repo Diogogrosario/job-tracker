@@ -55,19 +55,21 @@ class EmailProcessingRulesTest {
 
     @Test
     void detectsAdvisoryRuleHintsAndNoiseSubjects() {
-        assertEquals(EmailCategory.APPLICATION_CONFIRMATION, EmailProcessingRules.ruleHint(
-                "Thank you for applying", ""));
-        assertEquals(EmailCategory.REJECTION, EmailProcessingRules.ruleHint(
-                "Update", "We decided to proceed with other candidates"));
-        assertEquals(EmailCategory.INTERVIEW_INVITATION, EmailProcessingRules.ruleHint(
-                "Interview invitation", ""));
-        assertEquals(EmailCategory.ASSESSMENT, EmailProcessingRules.ruleHint(
-                "Online assessment", ""));
-        assertEquals(EmailCategory.ASSESSMENT, EmailProcessingRules.ruleHint(
-                "Coding challenge", "This take-home exercise is due soon."));
-        assertEquals(EmailCategory.OFFER, EmailProcessingRules.ruleHint(
-                "Pleased to offer you the role", ""));
+        assertTrue(EmailProcessingRules.ruleHints("Thank you for applying", "")
+                .contains(EmailCategory.APPLICATION_CONFIRMATION));
+        assertTrue(EmailProcessingRules.ruleHints("Update", "We decided to proceed with other candidates")
+                .contains(EmailCategory.REJECTION));
+        assertTrue(EmailProcessingRules.ruleHints("Interview invitation", "")
+                .contains(EmailCategory.INTERVIEW_INVITATION));
+        assertTrue(EmailProcessingRules.ruleHints("Online assessment", "")
+                .contains(EmailCategory.ASSESSMENT));
+        assertTrue(EmailProcessingRules.ruleHints("Coding challenge", "This take-home exercise is due soon.")
+                .contains(EmailCategory.ASSESSMENT));
+        assertTrue(EmailProcessingRules.ruleHints("Pleased to offer you the role", "")
+                .contains(EmailCategory.OFFER));
         assertTrue(EmailProcessingRules.isNoise("Your weekly digest: recommended jobs"));
-        assertEquals(null, EmailProcessingRules.ruleHint("General update", "No classification phrase."));
+        assertTrue(EmailProcessingRules.ruleHints("General update", "No classification phrase.").isEmpty());
+        assertEquals(2, EmailProcessingRules.ruleHints(
+                "Pleased to offer", "Unfortunately, we decided to proceed with other candidates").size());
     }
 }

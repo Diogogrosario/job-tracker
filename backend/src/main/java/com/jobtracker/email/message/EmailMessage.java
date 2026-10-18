@@ -53,6 +53,9 @@ public class EmailMessage {
     @Column(length = 40)
     private String category;
 
+    @Column(name = "ai_category", length = 40)
+    private String aiCategory;
+
     @Column(name = "extracted_company", length = 200)
     private String extractedCompany;
 

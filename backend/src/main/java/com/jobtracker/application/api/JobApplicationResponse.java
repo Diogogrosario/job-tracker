@@ -13,5 +13,8 @@ public record JobApplicationResponse(
         ApplicationStatus status,
         String notes,
         OffsetDateTime createdAt,
-        OffsetDateTime updatedAt) {
+        OffsetDateTime updatedAt,
+        String lastStatusSource,
+        String lastEmailSubject,
+        OffsetDateTime lastEmailAt) {
 }

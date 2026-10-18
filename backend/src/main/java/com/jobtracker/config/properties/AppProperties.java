@@ -91,8 +91,9 @@ public class AppProperties {
 
     public static class Processing {
         private int maxPerRun = 50;
-        private boolean autoApply;
-        private double autoApplyMinConfidence = 0.85;
+        private boolean autoApplyMatched = true;
+        private boolean autoApplyAiOnly;
+        private boolean requireAgreement = true;
 
         public int getMaxPerRun() {
             return maxPerRun;
@@ -102,20 +103,28 @@ public class AppProperties {
             this.maxPerRun = maxPerRun;
         }
 
-        public boolean isAutoApply() {
-            return autoApply;
+        public boolean isAutoApplyMatched() {
+            return autoApplyMatched;
         }
 
-        public void setAutoApply(boolean autoApply) {
-            this.autoApply = autoApply;
+        public void setAutoApplyMatched(boolean autoApplyMatched) {
+            this.autoApplyMatched = autoApplyMatched;
         }
 
-        public double getAutoApplyMinConfidence() {
-            return autoApplyMinConfidence;
+        public boolean isAutoApplyAiOnly() {
+            return autoApplyAiOnly;
         }
 
-        public void setAutoApplyMinConfidence(double autoApplyMinConfidence) {
-            this.autoApplyMinConfidence = autoApplyMinConfidence;
+        public void setAutoApplyAiOnly(boolean autoApplyAiOnly) {
+            this.autoApplyAiOnly = autoApplyAiOnly;
+        }
+
+        public boolean isRequireAgreement() {
+            return requireAgreement;
+        }
+
+        public void setRequireAgreement(boolean requireAgreement) {
+            this.requireAgreement = requireAgreement;
         }
     }
 

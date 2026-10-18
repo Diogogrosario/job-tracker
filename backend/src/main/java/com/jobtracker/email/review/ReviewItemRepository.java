@@ -9,7 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ReviewItemRepository extends JpaRepository<ReviewItem, Long> {
-    List<ReviewItem> findAllByStatusOrderByCreatedAtAsc(ReviewStatus status);
+    List<ReviewItem> findAllByStatusOrderByCreatedAtDesc(ReviewStatus status);
+
+    Optional<ReviewItem> findFirstByEmailMessage_Id(Long emailMessageId);
 
     long countByStatus(ReviewStatus status);
 

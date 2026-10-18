@@ -8,15 +8,15 @@ import com.jobtracker.application.domain.ApplicationStatusHistory;
 import com.jobtracker.application.domain.JobApplication;
 import com.jobtracker.application.persistence.ApplicationStatusHistoryRepository;
 import com.jobtracker.application.persistence.JobApplicationRepository;
+import com.jobtracker.application.persistence.JobApplicationRow;
 import com.jobtracker.common.error.NotFoundException;
-import jakarta.persistence.criteria.Predicate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.time.Instant;
 import java.time.LocalDate;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,35 +43,22 @@ public class JobApplicationService {
         application.setNotes(request.notes());
         application = applicationRepository.save(application);
         recordStatusChange(application, null, application.getStatus(), "MANUAL", null);
-        return toResponse(application);
+        return get(application.getId());
     }
 
     @Transactional(readOnly = true)
     public JobApplicationResponse get(Long id) {
-        return toResponse(findApplication(id));
+        return applicationRepository.findApplicationRowById(id)
+                .map(JobApplicationService::toResponse)
+                .orElseThrow(() -> new NotFoundException("Job application " + id + " not found"));
     }
 
     @Transactional(readOnly = true)
     public List<JobApplicationResponse> list(ApplicationStatus status, String search) {
-        Specification<JobApplication> specification = (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            if (status != null) {
-                predicates.add(criteriaBuilder.equal(root.get("status"), status));
-            }
-            if (search != null && !search.isBlank()) {
-                String pattern = "%" + escapeLike(search.trim().toLowerCase(Locale.ROOT)) + "%";
-                Predicate companyMatches = criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("company")), pattern, '\\');
-                Predicate titleMatches = criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("jobTitle")), pattern, '\\');
-                predicates.add(criteriaBuilder.or(companyMatches, titleMatches));
-            }
-            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
-        };
-
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt")
-                .and(Sort.by(Sort.Direction.DESC, "id"));
-        return applicationRepository.findAll(specification, sort).stream()
+        String escapedSearch = search == null || search.isBlank()
+                ? null
+                : escapeLike(search.trim().toLowerCase(Locale.ROOT));
+        return applicationRepository.findApplicationRows(status == null ? null : status.name(), escapedSearch).stream()
                 .map(JobApplicationService::toResponse)
                 .toList();
     }
@@ -93,7 +80,7 @@ public class JobApplicationService {
         if (!Objects.equals(oldStatus, newStatus)) {
             recordStatusChange(application, oldStatus, newStatus, "MANUAL", null);
         }
-        return toResponse(application);
+        return get(application.getId());
     }
 
     @Transactional
@@ -165,17 +152,20 @@ public class JobApplicationService {
         historyRepository.save(history);
     }
 
-    private static JobApplicationResponse toResponse(JobApplication application) {
+    private static JobApplicationResponse toResponse(JobApplicationRow application) {
         return new JobApplicationResponse(
-                application.getId(),
-                application.getCompany(),
-                application.getJobTitle(),
-                application.getJobUrl(),
-                application.getDateApplied(),
-                application.getStatus(),
-                application.getNotes(),
-                application.getCreatedAt(),
-                application.getUpdatedAt());
+                application.getId(), application.getCompany(), application.getJobTitle(),
+                application.getJobUrl(), application.getDateApplied(),
+                ApplicationStatus.valueOf(application.getStatus()), application.getNotes(),
+                asUtcOffsetDateTime(application.getCreatedAt()),
+                asUtcOffsetDateTime(application.getUpdatedAt()),
+                application.getLastStatusSource(),
+                application.getLastEmailSubject(),
+                asUtcOffsetDateTime(application.getLastEmailAt()));
+    }
+
+    private static OffsetDateTime asUtcOffsetDateTime(Instant value) {
+        return value == null ? null : value.atOffset(ZoneOffset.UTC);
     }
 
     private static ApplicationStatusHistoryResponse toHistoryResponse(ApplicationStatusHistory history) {
@@ -189,8 +179,8 @@ public class JobApplicationService {
     }
 
     private static String escapeLike(String value) {
-        return value.replace("\\", "\\\\")
-                .replace("%", "\\%")
-                .replace("_", "\\_");
+        return value.replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_");
     }
 }

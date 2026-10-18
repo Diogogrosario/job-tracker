@@ -10,10 +10,10 @@ import com.jobtracker.email.review.ReviewAction;
 import com.jobtracker.email.review.ReviewItem;
 import com.jobtracker.email.review.ReviewItemRepository;
 import com.jobtracker.email.review.ReviewStatus;
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,115 +41,123 @@ public class EmailProcessingWorker {
     public ProcessingOutcome process(
             Long emailId,
             ClassificationResult classification,
-            EmailCategory ruleHint,
-            boolean autoApply,
-            double autoApplyMinConfidence) {
+            Set<EmailCategory> ruleHints,
+            boolean autoApplyMatched,
+            boolean autoApplyAiOnly,
+            boolean requireAgreement) {
         EmailMessage message = findMessage(emailId);
-        setClassification(message, classification);
-        boolean categoryMismatch = ruleHint != null && classification.category() != ruleHint;
-        boolean requiresReview = classification.requiresReview() || !classification.valid() || categoryMismatch;
-        if (categoryMismatch && message.getProcessingError() == null) {
-            message.setProcessingError("AI category disagreed with the rule hint");
+        EmailDecisionPolicy.Decision decision = EmailDecisionPolicy.decide(ruleHints, classification);
+        setClassification(message, classification, decision);
+
+        Optional<ReviewItem> existingItem = reviewRepository.findFirstByEmailMessage_Id(message.getId());
+        if (existingItem.isPresent()) {
+            finish(message);
+            return new ProcessingOutcome(true, false, false, false);
         }
 
-        if (classification.valid() && classification.category() == EmailCategory.UNRELATED) {
+        if (classification.valid() && classification.category() == EmailCategory.UNRELATED
+                && ruleHints.size() < 2 && !decision.decided()) {
             finish(message);
-            return new ProcessingOutcome(true, false, false);
+            return new ProcessingOutcome(true, false, false, false);
         }
-
-        if (!classification.valid()) {
-            if (hasProposalDetails(classification)) {
-                Optional<JobApplication> duplicate = findExistingApplication(
-                        classification.company(), classification.jobTitle());
-                if (duplicate.isPresent()) {
-                    message.setApplication(duplicate.get());
-                    finish(message);
-                    return new ProcessingOutcome(true, false, true);
-                }
-                Optional<ReviewItem> pendingDuplicate = findPendingCreate(
-                        classification.company(), classification.jobTitle());
-                if (pendingDuplicate.isPresent()) {
-                    message.setApplication(pendingDuplicate.get().getApplication());
-                    finish(message);
-                    return new ProcessingOutcome(true, false, true);
-                }
-                createProposal(message, null, classification, classification.validationError());
-                finish(message);
-                return new ProcessingOutcome(true, true, true);
-            }
-            setProcessingError(message, classification.validationError());
+        if (decision.category() == EmailCategory.UNRELATED && decision.decided()) {
             finish(message);
-            return new ProcessingOutcome(true, false, true);
-        }
-
-        ApplicationStatus target = EmailProcessingRules.statusFor(classification.category());
-        if (target == null) {
-            finish(message);
-            return new ProcessingOutcome(true, false, false);
+            return new ProcessingOutcome(true, false, false, false);
         }
 
         Match match = findMatch(message, classification);
-        if (match.ambiguous()) {
-            createReview(message, null, ReviewAction.UPDATE_STATUS, target, classification,
-                    "Several applications have the same company and title overlap is ambiguous");
+        ApplicationStatus target = EmailDecisionPolicy.suggestedStatus(decision);
+
+        if (!classification.valid()) {
+            String reason = match.ambiguous()
+                    ? "Several applications match this company"
+                    : requireAgreement && !ruleHints.isEmpty()
+                            ? EmailDecisionPolicy.agreementReason(ruleHints, classification)
+                            : decision.reason() == null ? "Model output could not be parsed" : decision.reason();
+            if (match.application() != null) {
+                message.setApplication(match.application());
+                createReview(message, match.application(), ReviewAction.UPDATE_STATUS,
+                        target, decision, classification, reason);
+            } else {
+                createReview(message, null, ReviewAction.CREATE_APPLICATION,
+                        target, decision, classification, reason);
+            }
             finish(message);
-            return new ProcessingOutcome(true, true, false);
+            return new ProcessingOutcome(true, true, true, false);
+        }
+
+        if (match.ambiguous()) {
+            createReview(message, null, ReviewAction.CREATE_APPLICATION, target, decision, classification,
+                    "Several applications match this company");
+            finish(message);
+            return new ProcessingOutcome(true, true, false, false);
         }
 
         if (match.application() != null) {
             JobApplication application = match.application();
             message.setApplication(application);
-            if (EmailProcessingRules.requiresStatusReview(application.getStatus(), target)) {
-                createReview(message, application, ReviewAction.UPDATE_STATUS, target, classification,
-                        "Status transition requires review");
-            } else if (!EmailProcessingRules.isForwardOrUnchanged(application.getStatus(), target)) {
+            EmailDecisionPolicy.MatchAction action = EmailDecisionPolicy.matchedAction(
+                    decision, application.getStatus(), match.ambiguous(),
+                    autoApplyMatched, autoApplyAiOnly, requireAgreement);
+            if (action == EmailDecisionPolicy.MatchAction.LINK_ONLY) {
                 finish(message);
-                return new ProcessingOutcome(true, false, false);
-            } else if (application.getStatus() == target) {
-                finish(message);
-                return new ProcessingOutcome(true, false, false);
-            } else if (requiresReview) {
-                createReview(message, application, ReviewAction.UPDATE_STATUS, target, classification,
-                        reviewReason(classification, categoryMismatch));
-            } else if (autoApply
-                    && match.matchCount() == 1
-                    && classification.confidence() >= autoApplyMinConfidence) {
-                applicationService.applyEmailUpdate(
-                        application.getId(), null, null, target, message.getProviderMessageId());
-                return finishApplied(message, application, false);
-            } else {
-                createReview(message, application, ReviewAction.UPDATE_STATUS, target, classification,
-                        "Automatic updates are disabled or confidence is below the configured threshold");
+                return new ProcessingOutcome(true, false, false, false);
             }
+            if (action == EmailDecisionPolicy.MatchAction.ATTENTION) {
+                String reason = decision.reason();
+                if (reason == null && application.getStatus() == ApplicationStatus.REJECTED) {
+                    reason = "Application is already rejected";
+                } else if (reason == null && application.getStatus() == ApplicationStatus.CLOSED) {
+                    reason = "Application is already closed";
+                } else if (reason == null && requireAgreement && !decision.aiAgreesWithRule()) {
+                    reason = EmailDecisionPolicy.agreementReason(ruleHints, classification);
+                } else if (reason == null && !decision.decided()) {
+                    reason = "Category could not be decided";
+                } else if (reason == null && !autoApplyAiOnly
+                        && "AI".equals(decision.classifiedBy())) {
+                    reason = "AI-only classification requires attention";
+                } else if (reason == null) {
+                    reason = "Matched application needs attention";
+                }
+                createReview(message, application, ReviewAction.UPDATE_STATUS, target, decision, classification,
+                        reason);
+                finish(message);
+                return new ProcessingOutcome(true, true, false, false);
+            }
+            applicationService.applyEmailUpdate(
+                    application.getId(), null, null, target, message.getProviderMessageId());
             finish(message);
-            return new ProcessingOutcome(true, true, false);
+            return new ProcessingOutcome(true, false, false, true);
         }
 
-        if (classification.category() == EmailCategory.APPLICATION_CONFIRMATION
-                || hasProposalDetails(classification)) {
-            Optional<JobApplication> duplicate = findExistingApplication(
+        if (hasProposalDetails(classification)) {
+            Optional<JobApplication> duplicateApplication = findExistingApplication(
                     classification.company(), classification.jobTitle());
-            if (duplicate.isPresent()) {
-                message.setApplication(duplicate.get());
+            if (duplicateApplication.isPresent()) {
+                message.setApplication(duplicateApplication.get());
                 finish(message);
-                return new ProcessingOutcome(true, false, false);
+                return new ProcessingOutcome(true, false, false, false);
             }
-            Optional<ReviewItem> pendingDuplicate = findPendingCreate(classification.company(),
-                    classification.jobTitle());
-            if (pendingDuplicate.isPresent()) {
-                message.setApplication(pendingDuplicate.get().getApplication());
+            Optional<ReviewItem> duplicateProposal = findPendingCreate(
+                    classification.company(), classification.jobTitle());
+            if (duplicateProposal.isPresent()) {
+                message.setApplication(duplicateProposal.get().getApplication());
                 finish(message);
-                return new ProcessingOutcome(true, false, false);
+                return new ProcessingOutcome(true, false, false, false);
             }
-            createProposal(message, target, classification,
-                    requiresReview ? reviewReason(classification, categoryMismatch) : "New application detected");
-            finish(message);
-            return new ProcessingOutcome(true, true, false);
+            if (classification.category() == EmailCategory.APPLICATION_CONFIRMATION || decision.decided()
+                    || !classification.valid()) {
+                createReview(message, null, ReviewAction.CREATE_APPLICATION, target, decision, classification,
+                        decision.reason() == null ? "No matching application" : decision.reason());
+                finish(message);
+                return new ProcessingOutcome(true, true, false, false);
+            }
         }
 
-        setProcessingError(message, "No matching application or sufficient data for a proposal");
+        createReview(message, null, ReviewAction.CREATE_APPLICATION, null, decision, classification,
+                decision.reason() == null ? "No matching application" : decision.reason());
         finish(message);
-        return new ProcessingOutcome(true, false, true);
+        return new ProcessingOutcome(true, true, false, false);
     }
 
     @Transactional
@@ -157,24 +165,16 @@ public class EmailProcessingWorker {
         EmailMessage message = findMessage(emailId);
         message.setCategory(EmailCategory.UNRELATED.name());
         message.setClassifiedBy("RULE");
+        message.setConfidence(new java.math.BigDecimal("0.800"));
         message.setNextAction("");
-        message.setProcessed(true);
-        message.setProcessedAt(OffsetDateTime.now());
+        finish(message);
         message.setProcessingError(null);
     }
 
     @Transactional
     public void markFailed(Long emailId, String error) {
         EmailMessage message = findMessage(emailId);
-        setProcessingError(message, error);
-        finish(message);
-    }
-
-    private ProcessingOutcome finishApplied(
-            EmailMessage message, JobApplication application, boolean proposal) {
-        message.setApplication(application);
-        finish(message);
-        return new ProcessingOutcome(true, proposal, false, true);
+        message.setProcessingError(limit(error, 300));
     }
 
     private Match findMatch(EmailMessage message, ClassificationResult classification) {
@@ -183,26 +183,29 @@ public class EmailProcessingWorker {
                     .findFirstByThreadIdAndApplicationIsNotNullAndIdNotOrderByReceivedAtAsc(
                             message.getThreadId(), message.getId());
             if (threadMatch.isPresent()) {
-                return new Match(threadMatch.get().getApplication(), false, 1);
+                return new Match(threadMatch.get().getApplication(), false);
             }
         }
         String company = EmailProcessingRules.normalizeCompany(classification.company());
         if (company.isBlank()) {
-            return new Match(null, false, 0);
+            return new Match(null, false);
         }
         List<JobApplication> sameCompany = applicationRepository.findAll().stream()
                 .filter(application -> company.equals(EmailProcessingRules.normalizeCompany(application.getCompany())))
                 .toList();
-        if (sameCompany.size() <= 1) {
-            return new Match(sameCompany.isEmpty() ? null : sameCompany.getFirst(), false, sameCompany.size());
+        if (sameCompany.size() == 1) {
+            return new Match(sameCompany.getFirst(), false);
+        }
+        if (sameCompany.isEmpty()) {
+            return new Match(null, false);
         }
         List<JobApplication> titleMatches = sameCompany.stream()
                 .filter(application -> EmailProcessingRules.titleTokenOverlap(
                         classification.jobTitle(), application.getJobTitle()) >= TITLE_OVERLAP_THRESHOLD)
                 .toList();
         return titleMatches.size() == 1
-                ? new Match(titleMatches.getFirst(), false, 1)
-                : new Match(null, true, titleMatches.size());
+                ? new Match(titleMatches.getFirst(), false)
+                : new Match(null, true);
     }
 
     private Optional<JobApplication> findExistingApplication(String company, String jobTitle) {
@@ -225,16 +228,12 @@ public class EmailProcessingWorker {
                 .findFirst();
     }
 
-    private void createProposal(
-            EmailMessage message, ApplicationStatus target, ClassificationResult classification, String reason) {
-        createReview(message, null, ReviewAction.CREATE_APPLICATION, target, classification, reason);
-    }
-
     private void createReview(
             EmailMessage message,
             JobApplication application,
             ReviewAction action,
             ApplicationStatus target,
+            EmailDecisionPolicy.Decision decision,
             ClassificationResult classification,
             String reason) {
         ReviewItem item = new ReviewItem();
@@ -244,31 +243,31 @@ public class EmailProcessingWorker {
         item.setProposedStatus(target);
         item.setProposedCompany(classification.company());
         item.setProposedJobTitle(classification.jobTitle());
-        item.setCategory(classification.category());
-        item.setConfidence(toConfidence(classification.confidence()));
-        item.setReason(limit(reason, 300));
+        item.setCategory(decision.category() == null ? classification.category() : decision.category());
+        item.setConfidence(decision.confidence());
+        item.setReason(limit(reason == null ? "Classification needs attention" : reason, 300));
         item.setStatus(ReviewStatus.PENDING);
         reviewRepository.save(item);
         message.setApplication(application);
     }
 
-    private void setClassification(EmailMessage message, ClassificationResult result) {
-        message.setCategory(result.category() == null ? null : result.category().name());
-        message.setExtractedCompany(limit(result.company(), 200));
-        message.setExtractedJobTitle(limit(result.jobTitle(), 200));
-        message.setConfidence(toConfidence(result.confidence()));
-        message.setClassifiedBy("AI");
-        message.setNextAction(limit(result.nextAction(), 300));
-        message.setProcessingError(result.valid() ? null : limit(result.validationError(), 300));
+    private void setClassification(
+            EmailMessage message,
+            ClassificationResult classification,
+            EmailDecisionPolicy.Decision decision) {
+        message.setCategory(decision.category() == null ? null : decision.category().name());
+        message.setAiCategory(classification.category() == null ? null : classification.category().name());
+        message.setExtractedCompany(limit(classification.company(), 200));
+        message.setExtractedJobTitle(limit(classification.jobTitle(), 200));
+        message.setConfidence(decision.confidence());
+        message.setClassifiedBy(decision.classifiedBy());
+        message.setNextAction(limit(classification.nextAction(), 300));
+        message.setProcessingError(classification.valid() ? null : limit(classification.validationError(), 300));
     }
 
     private void finish(EmailMessage message) {
         message.setProcessed(true);
         message.setProcessedAt(OffsetDateTime.now());
-    }
-
-    private void setProcessingError(EmailMessage message, String error) {
-        message.setProcessingError(limit(error == null ? "Processing could not classify the message" : error, 300));
     }
 
     private EmailMessage findMessage(Long id) {
@@ -281,34 +280,18 @@ public class EmailProcessingWorker {
                 && result.jobTitle() != null && !result.jobTitle().isBlank();
     }
 
-    private static String reviewReason(ClassificationResult result, boolean categoryMismatch) {
-        if (categoryMismatch) {
-            return "AI category disagreed with the rule hint";
-        }
-        return result.requiresReview() ? "The AI requested human review" : "Status update requires confirmation";
-    }
-
     private static String normalizedTitle(String title) {
         return title == null ? "" : title.toLowerCase(java.util.Locale.ROOT)
                 .replaceAll("[^\\p{Alnum}]+", " ").trim().replaceAll("\\s+", " ");
-    }
-
-    private static BigDecimal toConfidence(Double confidence) {
-        return confidence == null || confidence < 0 || confidence > 1
-                ? null
-                : BigDecimal.valueOf(confidence);
     }
 
     private static String limit(String value, int maxLength) {
         return value == null || value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
-    private record Match(JobApplication application, boolean ambiguous, int matchCount) {
+    private record Match(JobApplication application, boolean ambiguous) {
     }
 
     public record ProcessingOutcome(boolean processed, boolean proposal, boolean error, boolean autoApplied) {
-        public ProcessingOutcome(boolean processed, boolean proposal, boolean error) {
-            this(processed, proposal, error, false);
-        }
     }
 }

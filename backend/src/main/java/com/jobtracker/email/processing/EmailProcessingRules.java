@@ -3,6 +3,7 @@ package com.jobtracker.email.processing;
 import com.jobtracker.application.domain.ApplicationStatus;
 import java.text.Normalizer;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -23,25 +24,26 @@ public final class EmailProcessingRules {
         return NOISE_SUBJECTS.stream().anyMatch(normalized::contains);
     }
 
-    public static EmailCategory ruleHint(String subject, String body) {
+    public static Set<EmailCategory> ruleHints(String subject, String body) {
         String text = normalizeText((subject == null ? "" : subject) + " " + (body == null ? "" : body));
+        Set<EmailCategory> hints = EnumSet.noneOf(EmailCategory.class);
         if (containsAny(text, "thank you for applying", "we received your application", "your application to")) {
-            return EmailCategory.APPLICATION_CONFIRMATION;
+            hints.add(EmailCategory.APPLICATION_CONFIRMATION);
         }
         if (containsAny(text, "unfortunately", "not moving forward",
                 "decided to proceed with other candidates", "regret to inform")) {
-            return EmailCategory.REJECTION;
+            hints.add(EmailCategory.REJECTION);
         }
         if (containsAny(text, "invite you to interview", "schedule an interview", "interview invitation")) {
-            return EmailCategory.INTERVIEW_INVITATION;
+            hints.add(EmailCategory.INTERVIEW_INVITATION);
         }
         if (containsAny(text, "online assessment", "coding challenge", "take home")) {
-            return EmailCategory.ASSESSMENT;
+            hints.add(EmailCategory.ASSESSMENT);
         }
         if (containsAny(text, "pleased to offer", "offer of employment")) {
-            return EmailCategory.OFFER;
+            hints.add(EmailCategory.OFFER);
         }
-        return null;
+        return Set.copyOf(hints);
     }
 
     public static String normalizeCompany(String company) {
