@@ -3,6 +3,34 @@
   <nav aria-label="Main navigation">
     <a routerLink="/">Applications</a>
     <a class="nav-action" routerLink="/applications/new">Add application</a>
+    @if (emailSync.state() === 'checking') {
+      <span class="gmail-indicator muted" aria-live="polite">Checking Gmail...</span>
+    } @else if (emailSync.state() === 'notConnected') {
+      <a class="gmail-indicator" href="/api/mailbox/connect">Connect Gmail</a>
+    } @else if (emailSync.state() === 'needsReconnect') {
+      <a class="gmail-indicator gmail-reconnect" href="/api/mailbox/connect">Reconnect Gmail</a>
+    } @else if (emailSync.state() === 'syncing') {
+      <span class="gmail-indicator" aria-live="polite">
+        <span class="gmail-spinner" aria-hidden="true"></span>
+        Syncing Gmail...
+      </span>
+    } @else if (emailSync.state() === 'idle') {
+      <button
+        class="gmail-indicator gmail-button"
+        type="button"
+        [title]="emailSync.resultTooltip()"
+        (click)="emailSync.syncNow()">
+        Gmail: {{ emailSync.email() }} · synced {{ emailSync.lastSyncAt() | date:'HH:mm' }}
+      </button>
+    } @else {
+      <button
+        class="gmail-indicator gmail-button gmail-error"
+        type="button"
+        [title]="emailSync.errorMessage() ?? 'Gmail sync failed'"
+        (click)="emailSync.syncNow()">
+        Gmail sync failed
+      </button>
+    }
   </nav>
 </header>
 

@@ -46,12 +46,12 @@ public class EmailSyncService {
         this.objectMapper = objectMapper;
     }
 
-    public SyncResult sync() {
+    public SyncResult sync(boolean force) {
         if (!syncing.compareAndSet(false, true)) {
             throw new EmailIntegrationException(HttpStatus.CONFLICT, "A Gmail sync is already running");
         }
         try {
-            return runSync();
+            return runSync(force);
         } finally {
             syncing.set(false);
         }
@@ -61,11 +61,14 @@ public class EmailSyncService {
         return syncing.get();
     }
 
-    private SyncResult runSync() {
+    private SyncResult runSync(boolean force) {
         MailboxConnection connection = connectionRepository.findByProvider(PROVIDER)
                 .orElseThrow(() -> new EmailIntegrationException(HttpStatus.CONFLICT, "Gmail is not connected"));
         if (connection.getStatus() != MailboxStatus.CONNECTED) {
             throw new EmailIntegrationException(HttpStatus.CONFLICT, "Gmail connection needs to be reconnected");
+        }
+        if (!force && hasRecentSuccessfulSync(connection)) {
+            return readSummary(connection.getLastSyncSummary()).result(true);
         }
 
         SyncCounters counters = new SyncCounters();
@@ -107,9 +110,31 @@ public class EmailSyncService {
                 recordListingFailure(connection, counters, completedAt);
             }
             if (exception.getStatus() == HttpStatus.BAD_GATEWAY) {
-                return new SyncResult(counters.fetched, counters.newMessages, counters.skipped, counters.errors);
+                return new SyncResult(counters.fetched, counters.newMessages, counters.skipped, counters.errors, false);
             }
             throw exception;
+        }
+    }
+
+    private boolean hasRecentSuccessfulSync(MailboxConnection connection) {
+        OffsetDateTime lastSyncAt = connection.getLastSyncAt();
+        int minIntervalMinutes = properties.getGmail().getMinSyncIntervalMinutes();
+        return "SUCCESS".equals(connection.getLastSyncStatus())
+                && lastSyncAt != null
+                && minIntervalMinutes > 0
+                && lastSyncAt.isAfter(OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(minIntervalMinutes));
+    }
+
+    private SyncSummary readSummary(String summary) {
+        if (summary == null || summary.isBlank()) {
+            throw new EmailIntegrationException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Could not read the stored Gmail sync result");
+        }
+        try {
+            return objectMapper.readValue(summary, SyncSummary.class);
+        } catch (tools.jackson.core.JacksonException exception) {
+            throw new EmailIntegrationException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Could not read the stored Gmail sync result");
         }
     }
 

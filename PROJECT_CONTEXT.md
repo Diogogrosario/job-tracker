@@ -459,7 +459,7 @@ Docker verification when the time comes: `docker compose up -d --build`, all ser
 
 ## Phase 2: Gmail integration
 
-The backend provides a read-only Gmail integration with manual synchronization. No AI classification, application matching, scheduling, or frontend changes are included in this phase.
+The app provides a read-only Gmail integration with automatic sync on app startup and every two hours while open, plus manual force-sync. No AI classification, application matching, or scheduled backend job is included in this phase.
 
 ### Endpoints
 
@@ -468,7 +468,7 @@ GET    /api/mailbox/connect          # Begin Google OAuth authorization-code flo
 GET    /api/mailbox/oauth/callback   # Verify state, exchange code, save mailbox, redirect to frontend
 GET    /api/mailbox/status           # Connection state, mailbox email, last successful sync and message count
 DELETE /api/mailbox                  # Revoke token best-effort and remove stored connection credentials
-POST   /api/email/sync               # Synchronously fetch matching messages
+POST   /api/email/sync               # Sync matching messages; ?force=true bypasses recent-success throttling
 GET    /api/email/sync/status        # Latest counters/status and whether a sync is running
 DELETE /api/email/messages           # Delete imported messages (mailbox remains connected)
 ```
@@ -477,6 +477,6 @@ DELETE /api/email/messages           # Delete imported messages (mailbox remains
 
 Gmail settings are under `app.google.client-id`, `app.google.client-secret`, `app.google.redirect-uri`, `app.security.token-encryption-key`, `app.frontend-url`, `app.gmail.sync-query`, `app.gmail.initial-days`, and `app.gmail.max-messages-per-sync`. The defaults use callback `http://localhost:8080/api/mailbox/oauth/callback`, frontend `http://localhost:4200`, 30 initial days, and up to 200 messages per sync. The configurable Gmail query is combined with the date filter.
 
-Configuration loads the existing `../.env` import and optionally the secrets file at `${user.home}/.jobtracker/secrets.properties` (on Windows, `%USERPROFILE%\.jobtracker\secrets.properties`). Always place `secrets.properties` at that location; the file path is fixed and cannot be overridden. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `TOKEN_ENCRYPTION_KEY` in the environment or secrets properties file. `TOKEN_ENCRYPTION_KEY` must be base64 for exactly 32 random bytes.
+Configuration loads the existing `../.env` import and optionally the secrets file at `${user.home}/.jobtracker/secrets.properties` (on Windows, `%USERPROFILE%\.jobtracker\secrets.properties`). Always place `secrets.properties` at that location; the file path is fixed and cannot be overridden. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `TOKEN_ENCRYPTION_KEY` in the environment or secrets properties file. `TOKEN_ENCRYPTION_KEY` must be base64 for exactly 32 random bytes. `app.gmail.min-sync-interval-minutes` defaults to 5; non-forced syncs within that interval return the previous successful result without calling Gmail.
 
 In Google Cloud, enable the Gmail API, configure an OAuth consent screen and an OAuth client with the backend callback URI registered as an authorized redirect URI. Add the Google account as a test user if the consent screen is in testing. Request only `https://www.googleapis.com/auth/gmail.readonly`. The backend keeps OAuth state server-side, stores the refresh token encrypted with AES-GCM, and keeps access tokens only in memory. Imported message IDs are unique; one failed message does not stop the sync. Sync is manual and mutually exclusive; the first run uses the configured initial-day window and subsequent runs overlap the last successful sync by one day.

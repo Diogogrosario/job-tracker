@@ -77,6 +77,7 @@ public class AppProperties {
         private String syncQuery;
         private int initialDays = 30;
         private int maxMessagesPerSync = 200;
+        private int minSyncIntervalMinutes = 5;
 
         public String getSyncQuery() {
             return syncQuery;
@@ -100,6 +101,14 @@ public class AppProperties {
 
         public void setMaxMessagesPerSync(int maxMessagesPerSync) {
             this.maxMessagesPerSync = maxMessagesPerSync;
+        }
+
+        public int getMinSyncIntervalMinutes() {
+            return minSyncIntervalMinutes;
+        }
+
+        public void setMinSyncIntervalMinutes(int minSyncIntervalMinutes) {
+            this.minSyncIntervalMinutes = minSyncIntervalMinutes;
         }
     }
 }

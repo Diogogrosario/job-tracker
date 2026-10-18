@@ -2,3 +2,50 @@
   display: block;
   min-height: 100vh;
 }
+
+.gmail-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 240px;
+  overflow: hidden;
+  color: #596579;
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gmail-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.gmail-reconnect,
+.gmail-error {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.gmail-spinner {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid #cbd3de;
+  border-top-color: #2358a5;
+  border-radius: 50%;
+  animation: gmail-spin 0.8s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes gmail-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 650px) {
+  .gmail-indicator {
+    max-width: 130px;
+  }
+}
