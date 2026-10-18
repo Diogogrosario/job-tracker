@@ -1,5 +1,6 @@
 package com.jobtracker.common;
 
+import com.jobtracker.email.EmailIntegrationException;
 import java.time.Instant;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(EmailIntegrationException.class)
+    public ResponseEntity<ApiError> handleEmailIntegration(EmailIntegrationException exception) {
+        return error(exception.getStatus(), exception.getMessage());
+    }
+
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(NotFoundException exception) {
         return error(HttpStatus.NOT_FOUND, exception.getMessage());
