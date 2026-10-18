@@ -27,10 +27,12 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      GOOGLE_REDIRECT_URI: http://localhost:4200/api/mailbox/oauth/callback
-      FRONTEND_URL: http://localhost:4200
+      GOOGLE_REDIRECT_URI: http://localhost:8080/api/mailbox/oauth/callback
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:4200}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:4b}
+    ports:
+      - "127.0.0.1:8080:8080"
     depends_on:
       db:
         condition: service_healthy

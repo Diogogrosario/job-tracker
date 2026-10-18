@@ -80,11 +80,31 @@ unless you intend to permanently delete all saved database data.
 
 ## Optional Gmail integration
 
-Register `http://localhost:4200/api/mailbox/oauth/callback` as the Google OAuth
-redirect URI. Put the Spring properties `app.google.client-id`,
-`app.google.client-secret`, and `app.security.token-encryption-key` in the
-mounted `secrets.properties` file. The encryption key must be a base64-encoded
-32-byte key. Restart the backend after changing the file:
+Register this exact URI as an Authorized redirect URI in the Google OAuth
+client settings:
+
+```text
+http://localhost:8080/api/mailbox/oauth/callback
+```
+
+The API publishes port 8080 on localhost for Google's callback; the app itself
+and its API requests are still served through <http://localhost:4200>. In
+`$HOME\.jobtracker\secrets.properties`, use these exact
+property names (the application reads these uppercase keys):
+
+```properties
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
+TOKEN_ENCRYPTION_KEY=your-base64-encoded-32-byte-key
+```
+
+The OAuth error means the running backend received an empty client ID or client
+secret. The mounted file is available to the container at
+`/run/secrets/backend_properties`. Because Docker mounts it without a file
+extension, the app explicitly tells Spring to load it as a `.properties` file.
+Use the exact uppercase names above rather than `app.google.client-id` /
+`app.google.client-secret`. After changing the file, restart the backend so
+Spring reloads it:
 
 ```powershell
 docker compose restart backend
