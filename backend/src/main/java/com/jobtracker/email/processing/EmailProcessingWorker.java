@@ -164,17 +164,16 @@ public class EmailProcessingWorker {
     public void markNoise(Long emailId) {
         EmailMessage message = findMessage(emailId);
         message.setCategory(EmailCategory.UNRELATED.name());
-        message.setClassifiedBy("RULE");
         message.setConfidence(new java.math.BigDecimal("0.800"));
-        message.setNextAction("");
         finish(message);
-        message.setProcessingError(null);
     }
 
     @Transactional
     public void markFailed(Long emailId, String error) {
         EmailMessage message = findMessage(emailId);
-        message.setProcessingError(limit(error, 300));
+        message.setCategory(EmailCategory.UNRELATED.name());
+        message.setConfidence(new java.math.BigDecimal("0.000"));
+        finish(message);
     }
 
     private Match findMatch(EmailMessage message, ClassificationResult classification) {
@@ -256,18 +255,11 @@ public class EmailProcessingWorker {
             ClassificationResult classification,
             EmailDecisionPolicy.Decision decision) {
         message.setCategory(decision.category() == null ? null : decision.category().name());
-        message.setAiCategory(classification.category() == null ? null : classification.category().name());
-        message.setExtractedCompany(limit(classification.company(), 200));
-        message.setExtractedJobTitle(limit(classification.jobTitle(), 200));
         message.setConfidence(decision.confidence());
-        message.setClassifiedBy(decision.classifiedBy());
-        message.setNextAction(limit(classification.nextAction(), 300));
-        message.setProcessingError(classification.valid() ? null : limit(classification.validationError(), 300));
     }
 
     private void finish(EmailMessage message) {
         message.setProcessed(true);
-        message.setProcessedAt(OffsetDateTime.now());
     }
 
     private EmailMessage findMessage(Long id) {

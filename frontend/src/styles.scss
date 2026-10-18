@@ -196,6 +196,120 @@ button:disabled {
 .status-rejected { background: #ffebea; color: #a52a24; }
 .status-closed { background: #e8eaed; color: #59616d; }
 
+.processing-line,
+.attention-notice {
+  margin: 0 0 0.75rem;
+  color: #596579;
+  font-size: 0.9rem;
+}
+
+.attention-panel {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+}
+
+.attention-panel h2 {
+  margin-bottom: 0.85rem;
+}
+
+.attention-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem 0;
+  border-top: 1px solid #edf0f4;
+}
+
+.attention-card:first-of-type {
+  border-top: 0;
+}
+
+.attention-email,
+.attention-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.attention-email > span,
+.attention-meta > span:last-child {
+  color: #596579;
+  font-size: 0.9rem;
+}
+
+.attention-reason {
+  line-height: 1.4;
+}
+
+.attention-reason strong {
+  color: #202b3c;
+}
+
+.attention-email p,
+.attention-application,
+.rejected-warning {
+  margin: 0;
+}
+
+.attention-email p {
+  flex-basis: 100%;
+  color: #596579;
+}
+
+.category-badge,
+.email-source-badge {
+  display: inline-block;
+  border-radius: 999px;
+  background: #edf2fa;
+  color: #40536f;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.email-source-badge {
+  margin-left: 0.35rem;
+  background: #e8f2ff;
+  color: #2358a5;
+  cursor: help;
+}
+
+.attention-application {
+  font-weight: 600;
+}
+
+.attention-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.attention-actions {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.attention-actions .field {
+  min-width: 180px;
+}
+
+.attention-actions > .field:nth-child(2) {
+  flex: 1 1 280px;
+}
+
+.attention-buttons {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.rejected-warning {
+  flex-basis: 100%;
+  color: #a52a24;
+  font-size: 0.85rem;
+}
+
 .empty-state {
   padding: 3rem 1rem;
   color: #596579;
@@ -270,6 +384,11 @@ button:disabled {
   margin: 0.35rem 0;
 }
 
+.email-list li {
+  display: grid;
+  gap: 0.25rem;
+}
+
 .muted,
 .error {
   color: #596579;
@@ -292,6 +411,10 @@ button:disabled {
   }
 
   .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attention-fields {
     grid-template-columns: 1fr;
   }
 }

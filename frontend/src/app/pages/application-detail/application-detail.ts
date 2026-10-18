@@ -3,7 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ApplicationStatus, statusLabel } from '../../models/application-status';
-import { JobApplication } from '../../models/job-application';
+import { ApplicationEmail, JobApplication } from '../../models/job-application';
 import { StatusHistory } from '../../models/status-history';
 import { apiErrorMessage, ApplicationService } from '../../services/application.service';
 
@@ -18,6 +18,7 @@ export class ApplicationDetail implements OnInit {
 
   protected readonly application = signal<JobApplication | null>(null);
   protected readonly history = signal<StatusHistory[]>([]);
+  protected readonly emails = signal<ApplicationEmail[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal('');
   protected readonly statusLabel = statusLabel;
@@ -33,10 +34,12 @@ export class ApplicationDetail implements OnInit {
     forkJoin({
       application: this.service.get(id),
       history: this.service.history(id),
+      emails: this.service.emails(id),
     }).subscribe({
       next: (result) => {
         this.application.set(result.application);
         this.history.set(result.history);
+        this.emails.set(result.emails);
         this.loading.set(false);
       },
       error: (error: unknown) => {

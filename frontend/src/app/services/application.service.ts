@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApplicationStatus } from '../models/application-status';
-import { JobApplication, JobApplicationRequest } from '../models/job-application';
+import { ApplicationEmail, JobApplication, JobApplicationRequest } from '../models/job-application';
 import { StatusHistory } from '../models/status-history';
 
 @Injectable({ providedIn: 'root' })
@@ -39,6 +39,10 @@ export class ApplicationService {
 
   history(id: number): Observable<StatusHistory[]> {
     return this.http.get<StatusHistory[]>(`${this.baseUrl}/${id}/history`);
+  }
+
+  emails(id: number): Observable<ApplicationEmail[]> {
+    return this.http.get<ApplicationEmail[]>(`${this.baseUrl}/${id}/emails`);
   }
 }
 

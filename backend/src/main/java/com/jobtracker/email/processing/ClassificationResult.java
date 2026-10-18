@@ -5,7 +5,6 @@ public record ClassificationResult(
         String company,
         String jobTitle,
         Double confidence,
-        String nextAction,
         boolean requiresReview,
         boolean valid,
         String validationError) {

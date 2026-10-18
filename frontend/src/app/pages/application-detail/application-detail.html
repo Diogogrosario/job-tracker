@@ -80,5 +80,28 @@
         </ol>
       }
     </section>
+
+    <section class="panel history-panel">
+      <h2>Emails</h2>
+      @if (emails().length === 0) {
+        <p class="muted">No linked emails.</p>
+      } @else {
+        <ol class="history email-list">
+          @for (email of emails(); track email.id) {
+            <li>
+              <strong>{{ email.subject || '(No subject)' }}</strong>
+              <p>{{ email.fromAddress || 'Unknown sender' }}</p>
+              @if (email.category) {
+                <p>Category: {{ email.category.replaceAll('_', ' ') }}</p>
+              }
+              @if (email.confidence !== null) {
+                <p>Confidence: {{ email.confidence }}</p>
+              }
+              <time [attr.datetime]="email.receivedAt">{{ email.receivedAt | date: 'medium' }}</time>
+            </li>
+          }
+        </ol>
+      }
+    </section>
   }
 </section>

@@ -10,6 +10,18 @@ export interface JobApplication {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  lastStatusSource: string | null;
+  lastEmailSubject: string | null;
+  lastEmailAt: string | null;
+}
+
+export interface ApplicationEmail {
+  id: number;
+  fromAddress: string | null;
+  subject: string | null;
+  receivedAt: string;
+  category: string | null;
+  confidence: number | null;
 }
 
 export interface JobApplicationRequest {

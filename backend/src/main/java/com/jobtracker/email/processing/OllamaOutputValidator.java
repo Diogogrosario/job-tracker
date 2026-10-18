@@ -13,22 +13,21 @@ public final class OllamaOutputValidator {
         try {
             root = objectMapper.readTree(output);
         } catch (JacksonException exception) {
-            return invalid(null, null, null, null, null, "Model output could not be parsed");
+            return invalid(null, null, null, null, "Model output could not be parsed");
         }
         if (root == null || !root.isObject()) {
-            return invalid(null, null, null, null, null, "Model output must be a JSON object");
+            return invalid(null, null, null, null, "Model output must be a JSON object");
         }
 
         String company = limitedString(root.path("company"));
         String jobTitle = limitedString(root.path("jobTitle"));
-        String nextAction = limitedString(root.path("nextAction"));
         EmailCategory category = null;
         String categoryValue = limitedString(root.path("category"));
         if (categoryValue != null) {
             try {
                 category = EmailCategory.valueOf(categoryValue);
             } catch (IllegalArgumentException ignored) {
-                return invalid(null, company, jobTitle, nextAction, confidence(root.path("confidence")),
+                return invalid(null, company, jobTitle, confidence(root.path("confidence")),
                         "Model returned an unknown category");
             }
         }
@@ -37,30 +36,27 @@ public final class OllamaOutputValidator {
         boolean requiresReview = reviewNode.isBoolean() && reviewNode.booleanValue();
 
         if (category == null) {
-            return invalid(null, company, jobTitle, nextAction, confidence, "Model category is missing");
+            return invalid(null, company, jobTitle, confidence, "Model category is missing");
         }
         if (confidence == null || confidence < 0 || confidence > 1) {
-            return invalid(category, company, jobTitle, nextAction, null,
+            return invalid(category, company, jobTitle, null,
                     "Model confidence must be between 0 and 1");
         }
         if (!reviewNode.isBoolean()) {
-            return invalid(category, company, jobTitle, nextAction, confidence,
+            return invalid(category, company, jobTitle, confidence,
                     "Model requiresReview must be boolean");
         }
-        if (nextAction == null) {
-            return invalid(category, company, jobTitle, null, confidence, "Model nextAction must be a string");
-        }
         if (category != EmailCategory.UNRELATED && (company == null || company.isBlank())) {
-            return invalid(category, null, jobTitle, nextAction, confidence, "Model company is required");
+            return invalid(category, null, jobTitle, confidence, "Model company is required");
         }
         return new ClassificationResult(category, company, jobTitle, confidence,
-                nextAction, requiresReview, true, null);
+                requiresReview, true, null);
     }
 
     private static ClassificationResult invalid(
-            EmailCategory category, String company, String jobTitle, String nextAction, Double confidence, String error) {
+            EmailCategory category, String company, String jobTitle, Double confidence, String error) {
         return new ClassificationResult(category, company, jobTitle, confidence,
-                nextAction, true, false, error);
+                true, false, error);
     }
 
     private static String limitedString(JsonNode node) {

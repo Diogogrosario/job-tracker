@@ -53,33 +53,12 @@ public class EmailMessage {
     @Column(length = 40)
     private String category;
 
-    @Column(name = "ai_category", length = 40)
-    private String aiCategory;
-
-    @Column(name = "extracted_company", length = 200)
-    private String extractedCompany;
-
-    @Column(name = "extracted_job_title", length = 200)
-    private String extractedJobTitle;
-
     @Column(precision = 4, scale = 3)
     private BigDecimal confidence;
-
-    @Column(name = "classified_by", length = 10)
-    private String classifiedBy;
-
-    @Column(name = "next_action", length = 300)
-    private String nextAction;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "application_id")
     private JobApplication application;
-
-    @Column(name = "processing_error", length = 300)
-    private String processingError;
-
-    @Column(name = "processed_at")
-    private OffsetDateTime processedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

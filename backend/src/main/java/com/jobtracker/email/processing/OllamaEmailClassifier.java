@@ -81,7 +81,7 @@ public class OllamaEmailClassifier {
                                 .body(JsonNode.class);
                 JsonNode content = response == null ? null : response.path("message").path("content");
                 if (content == null || !content.isTextual()) {
-                        return new ClassificationResult(null, null, null, null, null,
+                        return new ClassificationResult(null, null, null, null,
                                         true, false, "Ollama response did not contain message content");
                 }
                 return OllamaOutputValidator.validate(content.asString(), objectMapper);
@@ -107,11 +107,10 @@ public class OllamaEmailClassifier {
                 fields.put("company", Map.of("type", "string"));
                 fields.put("jobTitle", Map.of("type", "string"));
                 fields.put("confidence", Map.of("type", "number", "minimum", 0, "maximum", 1));
-                fields.put("nextAction", Map.of("type", "string"));
                 fields.put("requiresReview", Map.of("type", "boolean"));
                 return Map.of("type", "object", "properties", fields,
                                 "required", List.of("evidence", "category", "company", "jobTitle", "confidence",
-                                                "nextAction", "requiresReview"),
+                                                "requiresReview"),
                                 "additionalProperties", false);
         }
 

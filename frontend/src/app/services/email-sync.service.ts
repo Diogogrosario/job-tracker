@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { apiErrorMessage } from './application.service';
-import { EmailSyncResponse, EmailSyncResult, MailboxStatus } from '../models/email-sync';
+import { EmailProcessingStatus, EmailSyncResponse, EmailSyncResult, MailboxStatus } from '../models/email-sync';
 
 type EmailSyncState =
   | 'checking'
@@ -33,6 +33,7 @@ export class EmailSyncService {
   readonly lastSyncAt = signal<string | null>(null);
   readonly lastResult = signal<EmailSyncResult | null>(null);
   readonly errorMessage = signal<string | null>(null);
+  readonly syncRevision = signal(0);
 
   constructor() {
     this.destroyRef.onDestroy(() => this.cleanup());
@@ -54,6 +55,10 @@ export class EmailSyncService {
 
   syncNow(): void {
     void this.sync(true);
+  }
+
+  processStatus() {
+    return this.http.get<EmailProcessingStatus>('/api/email/process/status');
   }
 
   resultTooltip(): string {
@@ -133,6 +138,8 @@ export class EmailSyncService {
       }
     } catch (error) {
       this.setRequestError(error);
+    } finally {
+      this.syncRevision.update((revision) => revision + 1);
     }
   }
 

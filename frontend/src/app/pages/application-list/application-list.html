@@ -7,6 +7,132 @@
     <a class="button-primary" routerLink="/applications/new">Add application</a>
   </div>
 
+  @if (processStatus()?.running) {
+    <p class="processing-line" aria-live="polite">
+      Processing emails: {{ processStatus()?.unprocessedCount }} left
+    </p>
+  }
+
+  @if (notice()) {
+    <p class="attention-notice" role="status">{{ notice() }}</p>
+  }
+
+  @if (attentionItems().length > 0) {
+    <section class="panel attention-panel" aria-labelledby="attention-heading">
+      <h2 id="attention-heading">Needs attention ({{ attentionItems().length }})</h2>
+      @for (item of attentionItems(); track item.id) {
+        <article class="attention-card">
+          <div class="attention-email">
+            <strong>{{ item.subject || '(No subject)' }}</strong>
+            <span>{{ item.fromAddress || 'Unknown sender' }} · {{ item.receivedAt | date: 'medium' }}</span>
+            @if (item.snippet) {
+              <p>{{ item.snippet }}</p>
+            }
+          </div>
+          <div class="attention-meta">
+            <span class="category-badge">{{ categoryLabel(item.category) }}</span>
+            <span class="attention-reason">
+              <strong>Reason:</strong> {{ item.reason || 'This email needs your attention.' }}
+            </span>
+          </div>
+
+          @if (item.applicationId !== null) {
+            <p class="attention-application">
+              {{ item.applicationCompany }} - {{ item.applicationJobTitle }},
+              now {{ item.applicationStatus ? statusLabel(item.applicationStatus) : 'unknown' }}
+            </p>
+          }
+
+          @if (item.applicationId === null) {
+            <div class="attention-fields">
+              <label class="field">
+                <span>Company</span>
+                <input
+                  #companyField
+                  [value]="draft(item).company"
+                  (input)="changeDraft(item, 'company', companyField.value)"
+                />
+              </label>
+              <label class="field">
+                <span>Job title</span>
+                <input
+                  #jobTitleField
+                  [value]="draft(item).jobTitle"
+                  (input)="changeDraft(item, 'jobTitle', jobTitleField.value)"
+                />
+              </label>
+            </div>
+          }
+
+          <div class="attention-actions">
+            <label class="field">
+              <span>Status</span>
+              <select
+                #statusField
+                [value]="draft(item).status"
+                (change)="changeDraft(item, 'status', statusField.value)"
+              >
+                <option value="">Choose status...</option>
+                @for (status of statuses; track status) {
+                  <option [value]="status">{{ statusLabel(status) }}</option>
+                }
+              </select>
+            </label>
+
+            @if (item.applicationId === null) {
+              <label class="field">
+                <span>Or link to an existing application</span>
+                <select
+                  #applicationField
+                  [value]="draft(item).applicationId ?? ''"
+                  (change)="changeDraft(item, 'applicationId', applicationField.value)"
+                >
+                  <option value="">Create a new application</option>
+                  @for (application of applications(); track application.id) {
+                    <option [value]="application.id">
+                      {{ application.company }} - {{ application.jobTitle }}
+                    </option>
+                  }
+                </select>
+              </label>
+            }
+
+            @if (draft(item).status === 'REJECTED') {
+              <p class="rejected-warning">Marks the application as rejected. Check the email first.</p>
+            }
+            <div class="attention-buttons">
+              <button
+                class="button-primary"
+                type="button"
+                [disabled]="!canApprove(item)"
+                (click)="approve(item)"
+              >
+                @if (item.applicationId !== null) {
+                  Set status
+                } @else if (draft(item).applicationId !== null) {
+                  Update {{ selectedApplicationCompany(item) }}
+                } @else {
+                  Create application
+                }
+              </button>
+              <button
+                class="button-secondary"
+                type="button"
+                [disabled]="busyIds().has(item.id)"
+                (click)="dismiss(item)"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+          @if (cardErrors()[item.id]) {
+            <p class="error" role="alert">{{ cardErrors()[item.id] }}</p>
+          }
+        </article>
+      }
+    </section>
+  }
+
   <div class="toolbar">
     <label class="field">
       <span>Search company or job title</span>
@@ -61,6 +187,14 @@
                 <span [class]="'status-badge status-' + application.status.toLowerCase()">
                   {{ statusLabel(application.status) }}
                 </span>
+                @if (application.lastStatusSource === 'EMAIL') {
+                  <span
+                    class="email-source-badge"
+                    [title]="'Via email: ' + (application.lastEmailSubject || 'Email') + ' · ' + (application.lastEmailAt | date: 'medium')"
+                  >
+                    via email
+                  </span>
+                }
               </td>
               <td>{{ application.dateApplied ? (application.dateApplied | date: 'mediumDate') : '-' }}</td>
               <td>
